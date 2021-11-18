@@ -1,0 +1,80 @@
+name: Build Create React App
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+      ecr_registry:
+        required: true
+        type: string
+      ecr_repository:
+        required: true
+        type: string
+      aws_region:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+
+    secrets:
+      aws_access_key_id:
+        required: true
+      aws_secret_access_key:
+        required: true
+      submodule_ssh_key:
+        required: true
+
+jobs:
+  build:
+    name: Pull Repository & Build
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ inputs.environment }}
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Checkout submodules
+      uses: actions/checkout@v2 
+      with:
+        repository: geekhives/mecom-pgi-ui
+        ref: master
+        path: project
+        ssh-key: ${{ secrets.submodule_ssh_key }}
+        submodules: recursive
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.aws_access_key_id }}
+        aws-secret-access-key: ${{ secrets.aws_secret_access_key }}
+        aws-region: ${{ inputs.aws_region }}
+    
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ inputs.ecr_registry }}
+        ECR_REPOSITORY: ${{ inputs.ecr_repository }}
+        IMAGE_TAG: ${{ inputs.image_tag }}
+        DOCKER_TARGET: 'nginx'
+      
+        REACT_APP_WS: ${{ secrets.PGI_REACT_APP_WS }}
+        REACT_APP_IS_PRODUCTION: ${{ secrets.PGI_REACT_APP_IS_PRODUCTION }}
+
+      run: |
+        docker build -f ops/pgi/docker/$DOCKER_TARGET/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest --target $DOCKER_TARGET . \
+        --build-arg REACT_APP_WS=$REACT_APP_WS \
+        --build-arg REACT_APP_IS_PRODUCTION=$REACT_APP_IS_PRODUCTION
+
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
