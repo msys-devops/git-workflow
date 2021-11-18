@@ -40,6 +40,10 @@ jobs:
       name: ${{ inputs.environment }}
     steps:
     - uses: actions/checkout@v2
+
+    - name: Set tag
+      id: vars
+      run: echo "::set-output name=tag::${GITHUB_REF#refs/*/}"
     
     - name: Checkout submodules
       uses: actions/checkout@v2 
@@ -65,7 +69,7 @@ jobs:
       id: build-image
       env:
         TAG_LATEST: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:latest
-        TAG_VERSION: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:${{ inputs.image_tag }}
+        TAG_VERSION: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:${{ steps.vars.outputs.tag}}
 
       run: |
         docker build -f ${{ inputs.dockerfile }} -t $TAG_LATEST -t $TAG_VERSION --target ${{ inputs.target }} .
