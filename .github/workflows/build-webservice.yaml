@@ -6,9 +6,6 @@ on:
       tag:
         required: true
         type: string
-      ecr_registry:
-        required: true
-        type: string
       ecr_repository:
         required: true
         type: string
@@ -65,8 +62,8 @@ jobs:
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
       env:
-        TAG_LATEST: ${{ inputs.ecr_registry }}/${{ inputs.ecr_repository }}:latest
-        TAG_VERSION: ${{ inputs.ecr_registry }}/${{ inputs.ecr_repository }}:${{ inputs.image_tag }}
+        TAG_LATEST: ${{ steps.login-ecr.outputs.registry }}/${{ inputs.ecr_repository }}:latest
+        TAG_VERSION: ${{ steps.login-ecr.outputs.registry }}/${{ inputs.ecr_repository }}:${{ inputs.image_tag }}
 
       run: |
         docker build -f ${{ inputs.dockerfile }} -t $TAG_LATEST -t $TAG_VERSION --target ${{ inputs.target }} .
