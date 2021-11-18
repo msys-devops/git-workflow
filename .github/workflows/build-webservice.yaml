@@ -75,7 +75,8 @@ jobs:
         TAG_VERSION: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:${{ steps.vars.outputs.tag}}
 
       run: |
-        docker build -f ${{ inputs.dockerfile }} -t $TAG_LATEST -t $TAG_VERSION --target ${{ inputs.target }} .
+        docker build -f ${{ inputs.dockerfile }} -t $TAG_LATEST -t $TAG_VERSION --target ${{ inputs.target }} . \
+        --build-arg PROJECT_DIR=${{ inputs.project_dir }}
         
         docker push $TAG_LATEST
         docker push $TAG_VERSION
