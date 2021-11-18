@@ -3,9 +3,6 @@ name: Build Web Service
 on:
   workflow_call:
     inputs:
-      tag:
-        required: true
-        type: string
       ecr_repository:
         required: true
         type: string
