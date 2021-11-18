@@ -12,6 +12,12 @@ on:
       aws_region:
         required: true
         type: string
+      namespace:
+        required: true
+        type: string
+      deployment:
+        required: true
+        type: string
 
     secrets:
       aws_access_key_id:
