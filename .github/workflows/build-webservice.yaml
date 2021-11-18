@@ -20,7 +20,10 @@ on:
         type: string
       dockerfile:
         required: true
-        type:  string
+        type: string
+      project_dir:
+        required: true
+        type: string 
 
     secrets:
       aws_access_key_id:
@@ -50,7 +53,7 @@ jobs:
       with:
         repository: ${{ inputs.repository }}
         ref: ${{ inputs.branch }}
-        path: project
+        path: ${{ inputs.project_dir }}
         ssh-key: ${{ secrets.submodule_ssh_key }}
         submodules: recursive
     
