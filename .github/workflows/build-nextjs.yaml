@@ -62,7 +62,7 @@ jobs:
         ssh-key: ${{ secrets.submodule_ssh_key }}
         submodules: recursive
 
-    - run: git describe --tags > ${{ inputs.project_dir }}/project/version
+    - run: git describe --tags > ${{ inputs.project_dir }}/version
     
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
