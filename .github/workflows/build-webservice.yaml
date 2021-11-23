@@ -47,7 +47,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - run: git describe --tags > ${{ inputs.project_dir }}/version
+    - run: git describe --tags > ${{ inputs.project_dir }}/project/version
 
     - name: Set tag
       id: vars
