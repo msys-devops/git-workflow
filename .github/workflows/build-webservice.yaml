@@ -47,8 +47,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - run: git describe --tags > ${{ inputs.project_dir }}/project/version
-
     - name: Set tag
       id: vars
       run: echo "::set-output name=tag::${GITHUB_REF#refs/*/}"
@@ -61,6 +59,9 @@ jobs:
         path: ${{ inputs.project_dir }}
         ssh-key: ${{ secrets.submodule_ssh_key }}
         submodules: recursive
+
+    - run: git describe --tags > ${{ inputs.project_dir }}/project/version
+    
     
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
