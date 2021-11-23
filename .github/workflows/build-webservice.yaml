@@ -47,6 +47,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - run: git describe --tags > ${{ inputs.project_dir }}/version
+
     - name: Set tag
       id: vars
       run: echo "::set-output name=tag::${GITHUB_REF#refs/*/}"
