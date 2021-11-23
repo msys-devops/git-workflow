@@ -37,6 +37,8 @@ on:
         required: true
       ecr_repository:
         required: true
+      end_point:
+        required: true
 
 jobs:
   build:
@@ -78,7 +80,7 @@ jobs:
       env:
         TAG_LATEST: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:${{ inputs.tag_env }}
         TAG_VERSION: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:${{ steps.vars.outputs.tag}}
-        
+
       run: |
         docker build -f ${{ inputs.dockerfile }} -t $TAG_LATEST -t $TAG_VERSION --target ${{ inputs.target }} . \
         --build-arg NEXT_APP_END_POINT=${{ secrets.end_point }}
