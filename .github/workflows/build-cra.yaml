@@ -21,6 +21,9 @@ on:
       image_tag:
         required: true
         type: string
+      build_env:
+        required: true
+        type: string
 
     secrets:
       aws_access_key_id:
@@ -42,8 +45,8 @@ jobs:
     - name: Checkout submodules
       uses: actions/checkout@v2 
       with:
-        repository: geekhives/mecom-pgi-ui
-        ref: master
+        repository: ${{ inputs.repository }}
+        ref: ${{ inputs.branch }}
         path: project
         ssh-key: ${{ secrets.submodule_ssh_key }}
         submodules: recursive
@@ -68,7 +71,8 @@ jobs:
         DOCKER_TARGET: 'nginx'
       
       run: |
-        docker build -f ops/pgi/docker/$DOCKER_TARGET/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest --target $DOCKER_TARGET .
+        docker build -f ops/pgi/docker/$DOCKER_TARGET/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest --target $DOCKER_TARGET . \
+        --build-arg ${{ inputs.build_env }}
 
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
