@@ -1,20 +1,32 @@
-name: Build Create React App
+name: Build Web Service
 
 on:
   workflow_call:
     inputs:
-      tag:
-        required: true
-        type: string
       aws_region:
         required: true
         type: string
       environment:
         required: true
         type: string
-      image_tag:
+      target:
         required: true
         type: string
+      repository:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+      dockerfile:
+        required: true
+        type: string
+      project_dir:
+        required: true
+        type: string 
+      tag_env:
+        required: true
+        type: string 
 
     secrets:
       aws_access_key_id:
@@ -25,8 +37,6 @@ on:
         required: true
       ecr_repository:
         required: true
-      envs:
-        required: true
 
 jobs:
   build:
@@ -36,15 +46,21 @@ jobs:
       name: ${{ inputs.environment }}
     steps:
     - uses: actions/checkout@v2
+
+    - name: Set tag
+      id: vars
+      run: echo "::set-output name=tag::${GITHUB_REF#refs/*/}"
     
     - name: Checkout submodules
       uses: actions/checkout@v2 
       with:
         repository: ${{ inputs.repository }}
         ref: ${{ inputs.branch }}
-        path: project
+        path: ${{ inputs.project_dir }}
         ssh-key: ${{ secrets.submodule_ssh_key }}
         submodules: recursive
+
+    - run: git describe --tags > ${{ inputs.project_dir }}/project/version
     
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
