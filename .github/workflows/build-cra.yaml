@@ -21,7 +21,7 @@ on:
       image_tag:
         required: true
         type: string
-      build_env:
+      envs:
         required: true
         type: string
 
@@ -72,7 +72,7 @@ jobs:
       
       run: |
         docker build -f ops/pgi/docker/$DOCKER_TARGET/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest --target $DOCKER_TARGET . \
-        --build-arg ${{ inputs.build_env }}
+        --build-arg ${{ inputs.envs }}
 
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
