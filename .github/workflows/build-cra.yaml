@@ -37,6 +37,9 @@ on:
         required: true
       ecr_repository:
         required: true
+      envs:
+        required: true
+
 
 jobs:
   build:
