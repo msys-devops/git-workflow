@@ -1,4 +1,4 @@
-name: Build Web Service
+name: Build UI
 
 on:
   workflow_call:
@@ -37,8 +37,9 @@ on:
         required: true
       ecr_repository:
         required: true
-      end_point:
+      envs:
         required: true
+
 
 jobs:
   build:
@@ -62,7 +63,7 @@ jobs:
         ssh-key: ${{ secrets.submodule_ssh_key }}
         submodules: recursive
 
-    - run: git describe --tags > ${{ inputs.project_dir }}/version
+    # - run: git describe --tags > ${{ inputs.project_dir }}/project/version
     
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -83,7 +84,7 @@ jobs:
 
       run: |
         docker build -f ${{ inputs.dockerfile }} -t $TAG_LATEST -t $TAG_VERSION --target ${{ inputs.target }} . \
-        --build-arg NEXT_APP_END_POINT=${{ secrets.end_point }}
+        --build-arg ENVS=${{ secrets.envs }}
         
         docker push $TAG_LATEST
         docker push $TAG_VERSION
