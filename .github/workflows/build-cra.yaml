@@ -6,12 +6,6 @@ on:
       tag:
         required: true
         type: string
-      ecr_registry:
-        required: true
-        type: string
-      ecr_repository:
-        required: true
-        type: string
       aws_region:
         required: true
         type: string
@@ -28,6 +22,8 @@ on:
       aws_secret_access_key:
         required: true
       submodule_ssh_key:
+        required: true
+      ecr_repository:
         required: true
       envs:
         required: true
