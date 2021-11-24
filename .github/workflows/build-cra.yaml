@@ -67,13 +67,8 @@ jobs:
         IMAGE_TAG: ${{ inputs.image_tag }}
         DOCKER_TARGET: 'nginx'
       
-        REACT_APP_WS: ${{ secrets.PGI_REACT_APP_WS }}
-        REACT_APP_IS_PRODUCTION: ${{ secrets.PGI_REACT_APP_IS_PRODUCTION }}
-
       run: |
-        docker build -f ops/pgi/docker/$DOCKER_TARGET/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest --target $DOCKER_TARGET . \
-        --build-arg REACT_APP_WS=$REACT_APP_WS \
-        --build-arg REACT_APP_IS_PRODUCTION=$REACT_APP_IS_PRODUCTION
+        docker build -f ops/pgi/docker/$DOCKER_TARGET/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest --target $DOCKER_TARGET .
 
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
