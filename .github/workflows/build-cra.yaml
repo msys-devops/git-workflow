@@ -67,11 +67,12 @@ jobs:
         ECR_REGISTRY: ${{ inputs.ecr_registry }}
         ECR_REPOSITORY: ${{ inputs.ecr_repository }}
         IMAGE_TAG: ${{ inputs.image_tag }}
+        ENVS: ${{ secrets.envs }}
         DOCKER_TARGET: 'nginx'
       
       run: |
         docker build -f ops/pgi/docker/$DOCKER_TARGET/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest --target $DOCKER_TARGET . \
-        --build-arg ${{ inputs.envs }}
+        --build-arg ENVS=$ENVS
 
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
