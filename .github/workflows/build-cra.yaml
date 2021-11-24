@@ -21,9 +21,6 @@ on:
       image_tag:
         required: true
         type: string
-      envs:
-        required: true
-        type: string
 
     secrets:
       aws_access_key_id:
@@ -31,6 +28,8 @@ on:
       aws_secret_access_key:
         required: true
       submodule_ssh_key:
+        required: true
+      envs:
         required: true
 
 jobs:
