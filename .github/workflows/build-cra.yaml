@@ -64,16 +64,13 @@ jobs:
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
       env:
-        ECR_REGISTRY: ${{ inputs.ecr_registry }}
-        ECR_REPOSITORY: ${{ inputs.ecr_repository }}
-        IMAGE_TAG: ${{ inputs.image_tag }}
-        ENVS: ${{ secrets.envs }}
-        DOCKER_TARGET: 'nginx'
-      
-      run: |
-        docker build -f ops/pgi/docker/$DOCKER_TARGET/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest --target $DOCKER_TARGET . \
-        --build-arg ENVS=$ENVS
+        TAG_LATEST: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:${{ inputs.tag_env }}
+        TAG_VERSION: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:${{ steps.vars.outputs.tag}}
 
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+      run: |
+        docker build -f ${{ inputs.dockerfile }} -t $TAG_LATEST -t $TAG_VERSION --target ${{ inputs.target }} . \
+        --build-arg ENVS=${{ secrets.envs }}
+        
+        docker push $TAG_LATEST
+        docker push $TAG_VERSION
+        echo "::set-output name=image::$TAG_VERSION"
