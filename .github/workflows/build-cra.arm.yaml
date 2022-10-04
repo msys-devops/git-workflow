@@ -50,17 +50,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - uses: uraimo/run-on-arch-action@v2
-      name: Run commands
-      id: runcmd
-      with:
-        arch: armv7
-        distro: ubuntu18.04
-        githubToken: ${{ github.token }}
-        run: |
-          uname -a
-          echo ::set-output name=uname::$(uname -a)
-
     - name: Set tag
       id: vars
       run: echo "::set-output name=tag::${GITHUB_REF#refs/*/}"
@@ -73,6 +62,17 @@ jobs:
         path: ${{ inputs.project_dir }}
         ssh-key: ${{ secrets.submodule_ssh_key }}
         submodules: recursive
+
+    - uses: uraimo/run-on-arch-action@v2
+      name: Run commands
+      id: runcmd
+      with:
+        arch: armv7
+        distro: ubuntu18.04
+        githubToken: ${{ github.token }}
+        run: |
+          uname -a
+          echo ::set-output name=uname::$(uname -a)
 
     # - run: git describe --tags > ${{ inputs.project_dir }}/project/version
     
