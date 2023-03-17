@@ -76,6 +76,7 @@ jobs:
       with:
         workload_identity_provider: ${{ secrets.gcp_workload_identity_provider }}
         service_account: ${{ secrets.gcp_service_account }}
+        token_format: 'access_token'
 
     - name: Build, tag, and push image to Artifacts Registry
       id: build-image
