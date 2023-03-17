@@ -3,7 +3,10 @@ name: Build Web Service
 on:
   workflow_call:
     inputs:
-      aws_region:
+      gcp_region:
+        required: true
+        type: string
+      gcp_project_id:
         required: true
         type: string
       environment:
@@ -29,13 +32,9 @@ on:
         type: string 
 
     secrets:
-      aws_access_key_id:
-        required: true
-      aws_secret_access_key:
-        required: true
       submodule_ssh_key:
         required: true
-      ecr_repository:
+      ar_repository:
         required: true
       envs:
         required: true
@@ -47,15 +46,19 @@ jobs:
     runs-on: ubuntu-latest
     environment: 
       name: ${{ inputs.environment }}
+    # Add "id-token" with the intended permissions.
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set tag
       id: vars
       run: echo "::set-output name=tag::${GITHUB_REF#refs/*/}"
     
     - name: Checkout submodules
-      uses: actions/checkout@v2 
+      uses: actions/checkout@v3
       with:
         repository: ${{ inputs.repository }}
         ref: ${{ inputs.branch }}
@@ -65,22 +68,18 @@ jobs:
 
     # - run: git describe --tags > ${{ inputs.project_dir }}/project/version
     
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+    - id: 'auth'
+      name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v1'
       with:
-        aws-access-key-id: ${{ secrets.aws_access_key_id }}
-        aws-secret-access-key: ${{ secrets.aws_secret_access_key }}
-        aws-region: ${{ inputs.aws_region }}
-    
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
+        workload_identity_provider: ${{ secrets.gcp_workload_identity_provider }}
+        service_account: ${{ secrets.gcp_service_account }}
 
-    - name: Build, tag, and push image to Amazon ECR
+    - name: Build, tag, and push image to Artifacts Registry
       id: build-image
       env:
-        TAG_LATEST: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:${{ inputs.tag_env }}
-        TAG_VERSION: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:${{ steps.vars.outputs.tag}}
+        TAG_LATEST: ${{ inputs.gcp_region }}-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ secrets.ar_repository }}:${{ inputs.tag_env }}
+        TAG_VERSION: ${{ inputs.gcp_region }}-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ secrets.ar_repository }}:${{ steps.vars.outputs.tag}}
 
       run: |
         docker build -f ${{ inputs.dockerfile }} -t $TAG_LATEST -t $TAG_VERSION --target ${{ inputs.target }} . \
