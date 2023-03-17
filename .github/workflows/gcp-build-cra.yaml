@@ -32,6 +32,10 @@ on:
         type: string 
 
     secrets:
+      gcp_workload_identity_provider:
+        required: true
+      gcp_service_account:
+        required: true
       submodule_ssh_key:
         required: true
       ar_repository:
