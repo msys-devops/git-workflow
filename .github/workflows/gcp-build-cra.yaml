@@ -78,6 +78,14 @@ jobs:
         service_account: ${{ secrets.gcp_service_account }}
         token_format: 'access_token'
 
+    # This example uses the docker login action
+    - uses: 'docker/login-action@v1'
+      name: 'Docker Login'
+      with:
+        registry: ${{ inputs.gcp_region }}-docker.pkg.dev
+        username: oauth2accesstoken
+        password: ${{ steps.auth.outputs.access_token }}
+
     - name: Build, tag, and push image to Artifacts Registry
       id: build-image
       env:
