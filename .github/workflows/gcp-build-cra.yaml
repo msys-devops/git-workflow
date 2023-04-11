@@ -1,4 +1,4 @@
-name: Build Web Service
+name: Build UI
 
 on:
   workflow_call:
@@ -26,10 +26,13 @@ on:
         type: string
       project_dir:
         required: true
-        type: string 
-      tag_env:
+        type: string
+      image_repo:
         required: true
-        type: string 
+        type: string
+      image_tag:
+        required: true
+        type: string
 
     secrets:
       gcp_workload_identity_provider:
@@ -89,8 +92,8 @@ jobs:
     - name: Build, tag, and push image to Artifacts Registry
       id: build-image
       env:
-        TAG_LATEST: ${{ inputs.gcp_region }}-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.repository }}:${{ inputs.tag_env }}
-        TAG_VERSION: ${{ inputs.gcp_region }}-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.repository }}:${{ steps.vars.outputs.tag}}
+        TAG_LATEST: ${{ inputs.gcp_region }}-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.image_repo }}:${{ inputs.image_tag }}
+        TAG_VERSION: ${{ inputs.gcp_region }}-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.image_repo }}:${{ steps.vars.outputs.tag}}
 
       run: |
         docker build -f ${{ inputs.dockerfile }} -t $TAG_LATEST -t $TAG_VERSION --target ${{ inputs.target }} . \
