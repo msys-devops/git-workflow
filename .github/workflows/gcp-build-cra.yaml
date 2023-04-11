@@ -60,7 +60,7 @@ jobs:
 
     - name: Set tag
       id: vars
-      run: echo "::set-output name=tag::${GITHUB_REF#refs/*/}"
+      run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
     
     - name: Checkout submodules
       uses: actions/checkout@v3
@@ -101,4 +101,4 @@ jobs:
         
         docker push $TAG_LATEST
         docker push $TAG_VERSION
-        echo "::set-output name=image::$TAG_VERSION"
+        echo "image=$TAG_VERSION" >> $GITHUB_OUTPUT
