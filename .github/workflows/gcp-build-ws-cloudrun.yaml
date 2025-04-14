@@ -91,7 +91,7 @@ jobs:
         echo "Fetching .env from Secret Manager..."
         gcloud secrets versions access latest \
           --project=$PROJECT_ID \
-          --secret=$SECRET_NAME > ${{ input.env_path }}
+          --secret=$SECRET_NAME > ${{ inputs.env_path }}
 
 
     # This example uses the docker login action
