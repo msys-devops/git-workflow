@@ -45,6 +45,8 @@ jobs:
   build:
     name: Pull Repository & Build
     runs-on: ubuntu-latest
+    env:
+      CONTAINERD_ENABLE_DEPRECATED_PULL_SCHEMA_1_IMAGE: "1"
     environment: 
       name: ${{ inputs.environment }}
     steps:
