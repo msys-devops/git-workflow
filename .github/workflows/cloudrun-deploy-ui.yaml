@@ -1,0 +1,60 @@
+name: Deploy UI to CloudRun
+
+on:
+  workflow_call:
+    inputs:
+      gcp_region:
+        required: true
+        type: string
+      gcp_project_id:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+      image_repo:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+
+
+    secrets:
+      gcp_workload_identity_provider:
+        required: true
+      gcp_service_account:
+        required: true
+
+jobs:
+  deploy:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: ${{ secrets.gcp_workload_identity_provider }}
+          service_account: ${{ secrets.gcp_service_account }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project }}/${{ inputs.image_repo }}:${{ inputs.image_tag }}"
+          gcloud run deploy ${{ inputs.service_name }} \
+            --image $IMAGE_NAME \
+            --platform managed \
+            --region asia-southeast1 \
+            --allow-unauthenticated \
+            --memory 512Mi \
+            --cpu 1 \
+            --concurrency 80 \
+            --timeout 300s \
+            --port ${{ inputs.port }}
+            --project ${{ inputs.gcp_project }}
