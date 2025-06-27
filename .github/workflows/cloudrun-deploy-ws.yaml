@@ -67,7 +67,7 @@ jobs:
             --cpu 1 \
             --concurrency 80 \
             --timeout 300s \
-            --port ${{ inputs.port }}
+            --port ${{ inputs.port }} \
             --project ${{ inputs.gcp_project_id }} \
             --network "${{ inputs.network }}" \
             --subnet "${{ inputs.subnet }}" \
