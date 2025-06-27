@@ -18,6 +18,12 @@ on:
       image_tag:
         required: true
         type: string
+      service_name:
+        required: true
+        type: string
+      port:
+        required: true
+        type: string
       network:
         required: true
         type: string
