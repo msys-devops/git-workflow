@@ -65,6 +65,6 @@ jobs:
           --project ms-multisys-nonprod-1 \
           --allow-unauthenticated \
           --add-volume=name=php-socket,type=in-memory,size-limit=32Mi \
-          --add-volume=name=app-code,type=empty-dir \
+          --add-volume=name=app-code,type=in-memory \
           --container nginx --image=$NGINX_IMAGE_NAME --memory 512Mi --cpu 1 --port 8080 --add-volume-mount=volume=php-socket,mount-path=/tmp --add-volume-mount=volume=app-code,mount-path=/var/www/html \
           --container fpm --image=$FPM_IMAGE_NAME --cpu=1 --memory=512Mi --add-volume-mount=volume=php-socket,mount-path=/tmp --add-volume-mount=volume=app-code,mount-path=/var/www/html
