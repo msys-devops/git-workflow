@@ -77,5 +77,6 @@ jobs:
             --image=$FPM_IMAGE_NAME \
             --cpu=1 \
             --memory=512Mi \
+            --port=9000 \
             --add-volume-mount=volume=php-socket,mount-path=/tmp \
             --add-volume-mount=volume=app-code,mount-path=/var/www/html
