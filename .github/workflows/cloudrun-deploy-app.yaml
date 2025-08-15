@@ -65,7 +65,7 @@ jobs:
           --allow-unauthenticated \
           --add-volume=name=php-socket,type=empty-dir,medium=memory,size-limit=32Mi \
           --add-volume=name=app-code,type=empty-dir \
-    \
+          \
           --image $NGINX_IMAGE_NAME \
           --memory 512Mi \
           --cpu 1 \
@@ -74,7 +74,7 @@ jobs:
           --port 8080 \
           --add-volume-mount=volume=php-socket,mount-path=/tmp \
           --add-volume-mount=volume=app-code,mount-path=/var/www/html \
-    \
+          \
           --container fpm \
           --image=$FPM_IMAGE_NAME \
           --cpu=1 \
