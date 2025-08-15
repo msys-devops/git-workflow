@@ -68,7 +68,7 @@ jobs:
             --concurrency 80 \
             --timeout 300s \
             --port ${{ inputs.port }} \
-            --project ${{ inputs.gcp_project_id }}
+            --project ${{ inputs.gcp_project_id }} \
             --add-volume=name=php-socket,type=empty-dir,medium=memory,size-limit=32Mi \
             --add-volume=name=app-code,type=empty-dir \
             --add-volume-mount=volume=php-socket,mount-path=/tmp \
