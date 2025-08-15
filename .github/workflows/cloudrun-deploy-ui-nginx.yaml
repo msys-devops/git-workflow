@@ -60,9 +60,9 @@ jobs:
             --region asia-southeast1 \
             --allow-unauthenticated \
             --memory 256Mi \
-            --cpu .25 \
+            --cpu 1 \
             --max-instances 2 \
-            --concurrency 1 \
+            --concurrency 80 \
             --timeout 300s \
             --port ${{ inputs.port }} \
             --project ${{ inputs.gcp_project_id }}
