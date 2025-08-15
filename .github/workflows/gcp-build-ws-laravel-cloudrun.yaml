@@ -12,6 +12,9 @@ on:
       environment:
         required: true
         type: string
+      target:
+        required: true
+        type: string        
       repository:
         required: true
         type: string
