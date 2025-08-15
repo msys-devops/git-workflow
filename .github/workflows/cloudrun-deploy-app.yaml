@@ -58,25 +58,27 @@ jobs:
         run: |
           NGINX_IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.nginx_image_repo }}:${{ inputs.image_tag }}"
           FPM_IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.fpm_image_repo }}:${{ inputs.image_tag }}"
-          gcloud run deploy ${{ inputs.service_name }} \
-            --image $NGINX_IMAGE_NAME \
-            --platform managed \
-            --region asia-southeast1 \
-            --allow-unauthenticated \
-            --memory 1024Mi \
-            --cpu 1 \
-            --concurrency 80 \
-            --timeout 300s \
-            --port ${{ inputs.port }} \
-            --project ${{ inputs.gcp_project_id }} \
-            --add-volume=name=php-socket,type=empty-dir,medium=memory,size-limit=32Mi \
-            --add-volume=name=app-code,type=empty-dir \
-            --add-volume-mount=volume=php-socket,mount-path=/tmp \
-            --add-volume-mount=volume=app-code,mount-path=/var/www/html \
-            --container fpm \
-            --image=$FPM_IMAGE_NAME \
-            --cpu=1 \
-            --memory=512Mi \
-            --port=9000 \
-            --add-volume-mount=volume=php-socket,mount-path=/tmp \
-            --add-volume-mount=volume=app-code,mount-path=/var/www/html
+          gcloud run deploy ers-ws-test \
+          --platform managed \
+          --region asia-southeast1 \
+          --project ms-multisys-nonprod-1 \
+          --allow-unauthenticated \
+          --add-volume=name=php-socket,type=empty-dir,medium=memory,size-limit=32Mi \
+          --add-volume=name=app-code,type=empty-dir \
+    \
+          --image $NGINX_IMAGE_NAME \
+          --memory 512Mi \
+          --cpu 1 \
+          --concurrency 80 \
+          --timeout 300s \
+          --port 8080 \
+          --add-volume-mount=volume=php-socket,mount-path=/tmp \
+          --add-volume-mount=volume=app-code,mount-path=/var/www/html \
+    \
+          --container fpm \
+          --image=$FPM_IMAGE_NAME \
+          --cpu=1 \
+          --memory=512Mi \
+          --port=9000 \
+          --add-volume-mount=volume=php-socket,mount-path=/tmp \
+          --add-volume-mount=volume=app-code,mount-path=/var/www/html
