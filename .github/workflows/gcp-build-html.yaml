@@ -68,8 +68,6 @@ jobs:
         path: ${{ inputs.project_dir }}
         ssh-key: ${{ secrets.submodule_ssh_key }}
         submodules: recursive
-
-    - run: git describe --tags > ${{ inputs.project_dir }}/project/version
     
     - id: 'auth'
       name: 'Authenticate to Google Cloud'
