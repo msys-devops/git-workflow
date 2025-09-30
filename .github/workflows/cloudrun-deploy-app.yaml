@@ -59,7 +59,12 @@ jobs:
 
       - name: Create Bucket if not exists
         run: |
-          gsutil mb -l ${{ inputs.gcp_region }} gs://${{ inputs.bucket_name }} || echo "Bucket already exists"    
+          if ! gcloud storage buckets describe gs://${{ inputs.bucket_name }} &>/dev/null; then
+            echo "Bucket does not exist. Creating gs://${{ inputs.bucket_name }}..."
+            gcloud storage buckets create gs://${{ inputs.bucket_name }} --location=${{ inputs.gcp_region }}
+          else
+            echo "Bucket gs://${{ inputs.bucket_name }} already exists."
+          fi    
 
       - name: Deploy to Cloud Run
         run: |
@@ -72,5 +77,5 @@ jobs:
           --project ${{ inputs.gcp_project_id }} \
           --allow-unauthenticated \
           --add-volume name=storage-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }} \
-          --container nginx --image=$NGINX_IMAGE_NAME --memory 512Mi --cpu 1 --port 8080 \
-          --container fpm --image=$FPM_IMAGE_NAME --cpu=1 --memory=512Mi --add-volume-mount container=fpm,volume=storage-volume,mount-path=/var/www/html/storage
+          --container nginx --image=$NGINX_IMAGE_NAME --memory 512Mi --cpu 1 --port 8080 --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage \
+          --container fpm --image=$FPM_IMAGE_NAME --cpu=1 --memory=512Mi --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage
