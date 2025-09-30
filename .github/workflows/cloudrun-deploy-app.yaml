@@ -29,7 +29,10 @@ on:
         type: string
       bucket_name:
         required: true
-        type: string        
+        type: string
+      storage_folder:
+        required: true
+        type: string           
 
 
 
@@ -66,6 +69,14 @@ jobs:
             echo "Bucket gs://${{ inputs.bucket_name }} already exists."
           fi    
 
+      - name: Create Subfolders in Storage Bucket
+        run: |
+          echo "Creating folder structure in gs://${{ inputs.bucket_name }}/"
+          # This now loops through the string passed from your main workflow
+          for FOLDER in ${{ inputs.storage_folders }}; do
+            gcloud storage cp /dev/null gs://${{ inputs.bucket_name }}/${FOLDER}
+          done
+          
       - name: Create Cache Bucket
         run: |
           if ! gcloud storage buckets describe gs://${{ inputs.bucket_name }}-cache &>/dev/null; then
