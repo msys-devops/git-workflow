@@ -89,4 +89,4 @@ jobs:
           --allow-unauthenticated \
           --add-volume name=storage-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }} \
           --container nginx --image=$NGINX_IMAGE_NAME --memory 512Mi --cpu 1 --port 8080 --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage \
-          --container fpm --image=$FPM_IMAGE_NAME --cpu=1 --memory=512Mi --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage --add-volume-mount
+          --container fpm --image=$FPM_IMAGE_NAME --cpu=1 --memory=512Mi --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage
