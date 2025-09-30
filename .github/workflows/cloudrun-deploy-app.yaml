@@ -30,7 +30,7 @@ on:
       bucket_name:
         required: true
         type: string
-      storage_folder:
+      storage_folders:
         required: true
         type: string           
 
