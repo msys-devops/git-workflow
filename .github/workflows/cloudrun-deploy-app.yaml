@@ -30,6 +30,22 @@ on:
       bucket_name:
         required: true
         type: string
+      nginx_cpu:  
+        required: false
+        type: string
+        default: '1'
+      nginx_memory:
+        required: false
+        type: string
+        default: '512Mi'
+      fpm_cpu:
+        required: false
+        type: string
+        default: '1'
+      fpm_memory:
+        required: false
+        type: string
+        default: '512Mi'        
       
 
 
@@ -58,7 +74,7 @@ jobs:
           workload_identity_provider: ${{ secrets.gcp_workload_identity_provider }}
           service_account: ${{ secrets.gcp_service_account }}
 
-      - name: Create Main Bucket
+      - name: Create Storage Bucket
         run: |
           if ! gcloud storage buckets describe gs://${{ inputs.bucket_name }} &>/dev/null; then
             echo "Bucket does not exist. Creating gs://${{ inputs.bucket_name }}..."
@@ -66,6 +82,15 @@ jobs:
           else
             echo "Bucket gs://${{ inputs.bucket_name }} already exists."
           fi    
+
+      - name: Create Cache Bucket
+        run: |
+          if ! gcloud storage buckets describe gs://${{ inputs.bucket_name }}-cache &>/dev/null; then
+            echo "Bucket does not exist. Creating gs://${{ inputs.bucket_name }}-cache..."
+            gcloud storage buckets create gs://${{ inputs.bucket_name }}-cache --location=${{ inputs.gcp_region }}
+          else
+            echo "Bucket gs://${{ inputs.bucket_name }}-cache already exists."
+          fi          
 
       - name: Deploy to Cloud Run
         run: |
@@ -79,5 +104,5 @@ jobs:
           --allow-unauthenticated \
           --add-volume name=storage-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }} \
           --add-volume name=cache-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }}-cache \          
-          --container nginx --image=$NGINX_IMAGE_NAME --memory 512Mi --cpu 1 --port 8080 --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage \
-          --container fpm --image=$FPM_IMAGE_NAME --cpu 1 --memory 512Mi --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage --add-volume-mount volume=cache-volume,mount-path=/var/www/html/bootstrap/cache/data
+          --container nginx --image=$NGINX_IMAGE_NAME --port 8080 --memory ${{ inputs.nginx_memory }} --cpu ${{ inputs.nginx_cpu }} --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage \
+          --container fpm --image=$FPM_IMAGE_NAME --memory ${{ inputs.fpm_memory }} --cpu ${{ inputs.fpm_cpu }} --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage --add-volume-mount volume=cache-volume,mount-path=/var/www/html/bootstrap/cache/data
