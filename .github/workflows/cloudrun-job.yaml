@@ -69,17 +69,32 @@ jobs:
           # Construct the full image name
           IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.image_repo }}:${{ inputs.image_tag }}"
 
-          # Start building the update command. This always updates the image and resources.
+          # Start building the update command with required flags
           UPDATE_CMD="gcloud run jobs update ${{ inputs.job_name }} \
             --region ${{ inputs.gcp_region }} \
             --project ${{ inputs.gcp_project_id }} \
-            --image $IMAGE_NAME \
-            --cpu ${{ inputs.cpu }} \
-            --memory ${{ inputs.memory }}"
+            --image $IMAGE_NAME"
 
+          # --- FIX STARTS HERE ---
+          # Conditionally add flags ONLY if they have a non-empty value.
+          
+          if [[ -n "${{ inputs.cpu }}" ]]; then
+            UPDATE_CMD+=" --cpu ${{ inputs.cpu }}"
+          fi
+
+          if [[ -n "${{ inputs.memory }}" ]]; then
+            UPDATE_CMD+=" --memory ${{ inputs.memory }}"
+          fi
+
+          # Also adding the logic for command and args from your caller workflow
+          if [[ -n "${{ inputs.command }}" ]]; then
+            UPDATE_CMD+=" --command '${{ inputs.command }}' --args '${{ inputs.args }}'"
+          fi
+          # --- FIX ENDS HERE ---
 
           # Execute the final gcloud command
           echo "--- Running Update Command ---"
+          echo "$UPDATE_CMD" # Log the command for easier debugging
           eval $UPDATE_CMD
           echo "--- Update Complete ---"
 
