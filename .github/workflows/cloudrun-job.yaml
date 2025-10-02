@@ -90,7 +90,6 @@ jobs:
           if [[ -n "${{ inputs.command }}" ]]; then
             UPDATE_CMD+=" --command '${{ inputs.command }}' --args '${{ inputs.args }}'"
           fi
-          # --- FIX ENDS HERE ---
 
           # Execute the final gcloud command
           echo "--- Running Update Command ---"
