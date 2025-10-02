@@ -1,0 +1,91 @@
+name: Reusable Cloud Run Job Workflow
+
+on:
+  workflow_call:
+    inputs:
+      job_name:
+        description: 'The name of the Cloud Run job.'
+        required: true
+        type: string
+      gcp_region:
+        description: 'The GCP region for the job.'
+        required: true
+        type: string
+      gcp_project_id:
+        description: 'The GCP project ID.'
+        required: true
+        type: string
+      image_repo:
+        description: 'The Artifact Registry repository for the FPM image.'
+        required: true
+        type: string
+      image_tag:
+        description: 'The tag of the image to deploy.'
+        required: true
+        type: string
+      cpu:
+        description: 'CPU allocation for the FPM container.'
+        required: false
+        type: string
+        default: '1'
+      memory:
+        description: 'Memory allocation for the FPM container.'
+        required: false
+        type: string
+        default: '512Mi'
+      command:
+        description: '(Optional) The command to run in the container. If specified, the job is updated with this command.'
+        required: true
+        type: string
+      args:
+        description: '(Optional) Arguments for the command. Use a comma-separated string, e.g., "arg1,arg2,arg3".'
+        required: true
+        type: string
+
+
+    secrets:
+      gcp_workload_identity_provider:
+        required: true
+      gcp_service_account:
+        required: true
+
+jobs:
+  run-cloud-run-job:
+    permissions:
+      contents: 'read'
+      id-token: 'write' # Required for Workload Identity Federation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Authenticate to Google Cloud
+        id: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: ${{ secrets.gcp_workload_identity_provider }}
+          service_account: ${{ secrets.gcp_service_account }}
+
+      - name: 🛠️ Configure and Update Job
+        run: |
+          # Construct the full image name
+          IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.image_repo }}:${{ inputs.image_tag }}"
+
+          # Start building the update command. This always updates the image and resources.
+          UPDATE_CMD="gcloud run jobs update ${{ inputs.job_name }} \
+            --region ${{ inputs.gcp_region }} \
+            --project ${{ inputs.gcp_project_id }} \
+            --image $IMAGE_NAME \
+            --cpu ${{ inputs.cpu }} \
+            --memory ${{ inputs.memory }}"
+
+
+          # Execute the final gcloud command
+          echo "--- Running Update Command ---"
+          eval $UPDATE_CMD
+          echo "--- Update Complete ---"
+
+      - name: 🚀 Execute Job
+        run: |
+          gcloud run jobs execute ${{ inputs.job_name }} \
+            --region ${{ inputs.gcp_region }} \
+            --project ${{ inputs.gcp_project_id }} \
+            --wait # Waits for the job to complete and streams logs
