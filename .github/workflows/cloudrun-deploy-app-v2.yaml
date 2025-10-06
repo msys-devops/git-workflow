@@ -109,7 +109,7 @@ jobs:
           if [[ -n "${{ inputs.project_name }}" && -n "${{ inputs.env }}" ]]; then
             echo "Constructing network and subnet names from 'project_name' and 'env' inputs."
             NETWORK_NAME="projects/${{ inputs.project_name }}-hostnet-prod-1/global/networks/${{ inputs.project_name }}-vpc-${{ inputs.env }}-host-1"
-            SUBNET_NAME="projects/"${{ inputs.project_name }}-hostnet-prod-1/regions/asia-southeast1/subnetworks/${{ inputs.project_name }}-${{ inputs.env }}-priv-sub-1"
+            SUBNET_NAME="projects/${{ inputs.project_name }}-hostnet-prod-1/regions/asia-southeast1/subnetworks/${{ inputs.project_name }}-${{ inputs.env }}-priv-sub-1"
           else
             echo "'project_name' and/or 'env' not provided. Falling back to 'default' network and subnet."
             NETWORK_NAME="default"
@@ -141,7 +141,7 @@ jobs:
           if [[ -n "${{ inputs.project_name }}" && -n "${{ inputs.env }}" ]]; then
             echo "Constructing network and subnet names from 'project_name' and 'env' inputs."
             NETWORK_NAME="projects/${{ inputs.project_name }}-hostnet-prod-1/global/networks/${{ inputs.project_name }}-vpc-${{ inputs.env }}-host-1"
-            SUBNET_NAME="projects/"${{ inputs.project_name }}-hostnet-prod-1/regions/asia-southeast1/subnetworks/${{ inputs.project_name }}-${{ inputs.env }}-priv-sub-1"
+            SUBNET_NAME="projects/${{ inputs.project_name }}-hostnet-prod-1/regions/asia-southeast1/subnetworks/${{ inputs.project_name }}-${{ inputs.env }}-priv-sub-1"
           else
             echo "'project_name' and/or 'env' not provided. Falling back to 'default' network and subnet."
             NETWORK_NAME="default"
