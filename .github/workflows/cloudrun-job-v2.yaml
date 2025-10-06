@@ -117,10 +117,9 @@ jobs:
             --project ${{ inputs.gcp_project_id }} \
             --wait # Waits for the job to complete and streams logs
 
-      - name: 📋 Fetch Logs on Failure
-        if: steps.execute_job.outcome == 'failure'
+      - name: 📋 Fetching Logs
         run: |
-          echo "⚠️ Job execution failed. Fetching logs..."
+          echo "Fetching logs..."
           EXECUTION_NAME=$(gcloud run jobs executions list \
             --job=${{ inputs.job_name }} \
             --region=${{ inputs.gcp_region }} \
