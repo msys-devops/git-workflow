@@ -34,14 +34,13 @@ on:
         type: string
         default: '512Mi'
       command:
-        description: '(Optional) The command to run in the container. If specified, the job is updated with this command.'
+        description: 'The command to run in the container. If specified, the job is updated with this command.'
         required: true
         type: string
       args:
-        description: '(Optional) Arguments for the command. Use a comma-separated string, e.g., "arg1,arg2,arg3".'
+        description: 'Arguments for the command. Use a comma-separated string, e.g., "arg1,arg2,arg3".'
         required: true
         type: string
-
 
     secrets:
       gcp_workload_identity_provider:
@@ -64,38 +63,44 @@ jobs:
           workload_identity_provider: ${{ secrets.gcp_workload_identity_provider }}
           service_account: ${{ secrets.gcp_service_account }}
 
-      - name: 🛠️ Configure and Update Job
+      - name: 🛠️ Create or Update Job
         run: |
-          # Construct the full image name
+          # Construct the full image name with the hardcoded region for Artifact Registry
           IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.image_repo }}:${{ inputs.image_tag }}"
 
-          # Start building the update command with required flags
-          UPDATE_CMD="gcloud run jobs update ${{ inputs.job_name }} \
-            --region ${{ inputs.gcp_region }} \
-            --project ${{ inputs.gcp_project_id }} \
-            --image $IMAGE_NAME"
+          # Build a string of all flags that will be passed to the gcloud command
+          FLAGS="--region ${{ inputs.gcp_region }} \
+                 --project ${{ inputs.gcp_project_id }} \
+                 --image $IMAGE_NAME"
 
-          # --- FIX STARTS HERE ---
-          # Conditionally add flags ONLY if they have a non-empty value.
-          
+          # Conditionally add flags ONLY if they have a non-empty value, matching original script logic.
           if [[ -n "${{ inputs.cpu }}" ]]; then
-            UPDATE_CMD+=" --cpu ${{ inputs.cpu }}"
+            FLAGS+=" --cpu ${{ inputs.cpu }}"
           fi
 
           if [[ -n "${{ inputs.memory }}" ]]; then
-            UPDATE_CMD+=" --memory ${{ inputs.memory }}"
+            FLAGS+=" --memory ${{ inputs.memory }}"
           fi
-
-          # Also adding the logic for command and args from your caller workflow
+          
           if [[ -n "${{ inputs.command }}" ]]; then
-            UPDATE_CMD+=" --command '${{ inputs.command }}' --args '${{ inputs.args }}'"
+            FLAGS+=" --command '${{ inputs.command }}' --args '${{ inputs.args }}'"
           fi
 
-          # Execute the final gcloud command
-          echo "--- Running Update Command ---"
-          echo "$UPDATE_CMD" # Log the command for easier debugging
-          eval $UPDATE_CMD
-          echo "--- Update Complete ---"
+          # Check if the job already exists
+          echo "Checking for existing job: ${{ inputs.job_name }}"
+          if gcloud run jobs describe ${{ inputs.job_name }} --region ${{ inputs.gcp_region }} --project ${{ inputs.gcp_project_id }} &>/dev/null; then
+            echo "Job found. Updating..."
+            FINAL_CMD="gcloud run jobs update ${{ inputs.job_name }} $FLAGS"
+          else
+            echo "Job not found. Creating..."
+            FINAL_CMD="gcloud run jobs create ${{ inputs.job_name }} $FLAGS"
+          fi
+
+          # Execute the final gcloud command (either create or update)
+          echo "--- Running Command ---"
+          echo "$FINAL_CMD"
+          eval $FINAL_CMD
+          echo "--- Create/Update Complete ---"
 
       - name: 🚀 Execute Job
         run: |
