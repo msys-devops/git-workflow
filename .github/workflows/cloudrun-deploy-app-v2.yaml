@@ -46,14 +46,13 @@ on:
         required: false
         type: string
         default: '512Mi' 
-      network:
-        required: true
+      project_name:
+        required: false
         type: string
-        default: 'default'
-      subnet:
-        required: true
-        type: string
-        default: 'default'
+      env:
+        required: false
+        type: string        
+    
 
 
 
@@ -103,15 +102,80 @@ jobs:
         run: |
           NGINX_IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.nginx_image_repo }}:${{ inputs.image_tag }}"
           FPM_IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.fpm_image_repo }}:${{ inputs.image_tag }}"
+
+
+          # If project_name AND env are provided, construct the network/subnet names.
+          # Otherwise, fall back to using 'default' for both.
+          if [[ -n "${{ inputs.project_name }}" && -n "${{ inputs.env }}" ]]; then
+            echo "Constructing network and subnet names from 'project_name' and 'env' inputs."
+            NETWORK_NAME="${{ inputs.project_name }}-vpc-${{ inputs.env }}-host-1"
+            SUBNET_NAME="${{ inputs.project_name }}-${{ inputs.env }}-priv-sub-1"
+          else
+            echo "'project_name' and/or 'env' not provided. Falling back to 'default' network and subnet."
+            NETWORK_NAME="default"
+            SUBNET_NAME="default"
+          fi
+          # --- End of Logic ---
+
           gcloud run deploy ${{ inputs.service_name }} \
-          --platform managed \
-          --execution-environment=gen2 \
-          --region ${{ inputs.gcp_region }} \
-          --project ${{ inputs.gcp_project_id }} \
-          --network "${{ inputs.network }}" \
-          --subnet "${{ inputs.subnet }}" \          
-          --allow-unauthenticated \
-          --add-volume name=storage-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }} \
-          --add-volume name=cache-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }}-cache \
-          --container nginx --image=$NGINX_IMAGE_NAME --port 8080 --memory ${{ inputs.nginx_memory }} --cpu ${{ inputs.nginx_cpu }} --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage \
-          --container fpm --image=$FPM_IMAGE_NAME --memory ${{ inputs.fpm_memory }} --cpu ${{ inputs.fpm_cpu }} --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage --add-volume-mount volume=cache-volume,mount-path=/var/www/html/bootstrap/cache/data
+            --platform managed \
+            --execution-environment=gen2 \
+            --region ${{ inputs.gcp_region }} \
+            --project ${{ inputs.gcp_project_id }} \
+            --network $NETWORK_NAME \
+            --subnet $SUBNET_NAME \
+            --allow-unauthenticated \
+            --add-volume name=storage-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }} \
+            --add-volume name=cache-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }}-cache \
+            --container nginx --image=$NGINX_IMAGE_NAME --port 8080 --memory ${{ inputs.nginx_memory }} --cpu ${{ inputs.nginx_cpu }} --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage \
+            --container fpm --image=$FPM_IMAGE_NAME --memory ${{ inputs.fpm_memory }} --cpu ${{ inputs.fpm_cpu }} --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage --add-volume-mount volume=cache-volume,mount-path=/var/www/html/bootstrap/cache/data
+
+
+      - name: Create Cloud Run Job
+        run: |
+          FPM_IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.fpm_image_repo }}:${{ inputs.image_tag }}"
+
+
+          # If project_name AND env are provided, construct the network/subnet names.
+          # Otherwise, fall back to using 'default' for both.
+          if [[ -n "${{ inputs.project_name }}" && -n "${{ inputs.env }}" ]]; then
+            echo "Constructing network and subnet names from 'project_name' and 'env' inputs."
+            NETWORK_NAME="${{ inputs.project_name }}-vpc-${{ inputs.env }}-host-1"
+            SUBNET_NAME="${{ inputs.project_name }}-${{ inputs.env }}-priv-sub-1"
+          else
+            echo "'project_name' and/or 'env' not provided. Falling back to 'default' network and subnet."
+            NETWORK_NAME="default"
+            SUBNET_NAME="default"
+          fi
+          # --- End of Logic ---
+
+
+          # If project_name AND env are provided, construct the network/subnet names.
+          # Otherwise, fall back to using 'default' for both.
+          if [[ -n "${{ inputs.project_name }}" && -n "${{ inputs.env }}" ]]; then
+            echo "Constructing network and subnet names from 'project_name' and 'env' inputs."
+            NETWORK_NAME="${{ inputs.project_name }}-vpc-${{ inputs.env }}-host-1"
+            SUBNET_NAME="${{ inputs.project_name }}-${{ inputs.env }}-priv-sub-1"
+          else
+            echo "'project_name' and/or 'env' not provided. Falling back to 'default' network and subnet."
+            NETWORK_NAME="default"
+            SUBNET_NAME="default"
+          fi
+          # --- End of Logic ---
+
+          cloud run jobs create ${{ inputs.service_name }} \
+            --region ${{ inputs.gcp_region }} \
+            --network $NETWORK_NAME \
+            --subnet $SUBNET_NAME \
+            --image $FPM_IMAGE_NAME \
+            --project ${{ inputs.gcp_project_id }} \
+            --command "null" \
+            --args "null" \
+            --cpu 1 \
+            --memory 512Mi \
+            --max-retries 0 \
+            --tasks 1 \
+            --timeout 3600s \
+            
+            
+       
