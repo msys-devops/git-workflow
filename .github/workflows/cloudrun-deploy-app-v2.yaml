@@ -124,6 +124,7 @@ jobs:
             --project ${{ inputs.gcp_project_id }} \
             --network $NETWORK_NAME \
             --subnet $SUBNET_NAME \
+            --vpc-egress="private-ranges-only" \
             --allow-unauthenticated \
             --add-volume name=storage-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }} \
             --add-volume name=cache-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }}-cache \
@@ -158,7 +159,7 @@ jobs:
               --region ${{ inputs.gcp_region }} \
               --network $NETWORK_NAME \
               --subnet $SUBNET_NAME \
-              --vpc-egress="all-traffic" \
+              --vpc-egress="private-ranges-only" \
               --image $FPM_IMAGE_NAME \
               --project ${{ inputs.gcp_project_id }} \
               --command "null" \
@@ -175,7 +176,7 @@ jobs:
             --region ${{ inputs.gcp_region }} \
             --network $NETWORK_NAME \
             --subnet $SUBNET_NAME \
-            --vpc-egress="all-traffic" \
+            --vpc-egress="private-ranges-only" \
             --image $FPM_IMAGE_NAME \
             --project ${{ inputs.gcp_project_id }} \
             --command "null" \
