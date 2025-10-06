@@ -46,6 +46,15 @@ on:
         required: false
         type: string
         default: '512Mi' 
+      network:
+        required: true
+        type: string
+        default: 'default'
+      subnet:
+        required: true
+        type: string
+        default: 'default'
+
 
 
     secrets:
@@ -98,7 +107,9 @@ jobs:
           --platform managed \
           --execution-environment=gen2 \
           --region ${{ inputs.gcp_region }} \
-          --project ${{ inputs.gcp_project_id }} \  
+          --project ${{ inputs.gcp_project_id }} \
+          --network "${{ inputs.network }}" \
+          --subnet "${{ inputs.subnet }}" \          
           --allow-unauthenticated \
           --add-volume name=storage-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }} \
           --add-volume name=cache-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }}-cache \
