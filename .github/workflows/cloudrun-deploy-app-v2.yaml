@@ -166,7 +166,7 @@ jobs:
               --memory 512Mi \
               --max-retries 0 \
               --tasks 1 \
-              --timeout 3600s
+              --task-timeout 300s
           else
             echo "Job not found. Creating..."
             # Create a new job
@@ -182,5 +182,5 @@ jobs:
             --memory 512Mi \
             --max-retries 0 \
             --tasks 1 \
-            --timeout 3600s
+            --task-timeout 300s
           fi
