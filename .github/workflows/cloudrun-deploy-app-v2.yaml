@@ -135,7 +135,6 @@ jobs:
         run: |
           FPM_IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.fpm_image_repo }}:${{ inputs.image_tag }}"
 
-
           # If project_name AND env are provided, construct the network/subnet names.
           # Otherwise, fall back to using 'default' for both.
           if [[ -n "${{ inputs.project_name }}" && -n "${{ inputs.env }}" ]]; then
@@ -167,7 +166,7 @@ jobs:
               --memory 512Mi \
               --max-retries 0 \
               --tasks 1 \
-              --timeout 3600s \
+              --timeout 3600s
           else
             echo "Job not found. Creating..."
             # Create a new job
@@ -183,7 +182,5 @@ jobs:
             --memory 512Mi \
             --max-retries 0 \
             --tasks 1 \
-            --timeout 3600s \
-            
-            
-       
+            --timeout 3600s
+          fi
