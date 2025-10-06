@@ -88,12 +88,12 @@ jobs:
 
           # Check if the job already exists
           echo "Checking for existing job: ${{ inputs.job_name }}"
-          if gcloud run jobs describe ${{ inputs.job_name }} --region ${{ inputs.gcp_region }} --project ${{ inputs.gcp_project_id }} &>/dev/null; then
+          if gcloud run jobs describe ${{ inputs.job_name }}-job --region ${{ inputs.gcp_region }} --project ${{ inputs.gcp_project_id }} &>/dev/null; then
             echo "Job found. Updating..."
-            FINAL_CMD="gcloud run jobs update ${{ inputs.job_name }} $FLAGS"
+            FINAL_CMD="gcloud run jobs update ${{ inputs.job_name }}-job $FLAGS"
           else
             echo "Job not found. Creating..."
-            FINAL_CMD="gcloud run jobs create ${{ inputs.job_name }} $FLAGS"
+            FINAL_CMD="gcloud run jobs create ${{ inputs.job_name }}-job $FLAGS"
           fi
 
           # Execute the final gcloud command (either create or update)
@@ -104,7 +104,7 @@ jobs:
 
       - name: 🚀 Execute Job
         run: |
-          gcloud run jobs execute ${{ inputs.job_name }} \
+          gcloud run jobs execute ${{ inputs.job_name }}-job \
             --region ${{ inputs.gcp_region }} \
             --project ${{ inputs.gcp_project_id }} \
             --wait # Waits for the job to complete and streams logs
