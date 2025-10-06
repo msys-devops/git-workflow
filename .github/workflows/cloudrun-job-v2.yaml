@@ -109,25 +109,18 @@ jobs:
           echo "--- Create/Update Complete ---"
 
       - name: 🚀 Execute Job
+        id: execute_job
+        continue-on-error: true      
         run: |
           gcloud run jobs execute ${{ inputs.job_name }} \
             --region ${{ inputs.gcp_region }} \
             --project ${{ inputs.gcp_project_id }} \
             --wait # Waits for the job to complete and streams logs
 
-      - name: 🚀 Execute Job and Fetch Logs
+      - name: 📋 Fetch Logs on Failure
+        if: steps.execute_job.outcome == 'failure'
         run: |
-          # Step 1: Execute the job and wait for it to finish.
-          echo "Executing job: ${{ inputs.job_name }}"
-          gcloud run jobs execute ${{ inputs.job_name }} \
-            --region ${{ inputs.gcp_region }} \
-            --project ${{ inputs.gcp_project_id }} \
-            --wait
-          
-          echo "✅ Job execution finished. Fetching logs..."
-          
-          # Step 2: Get the name of the most recent execution for this job.
-          # We sort by completion time in descending order and take the first one.
+          echo "⚠️ Job execution failed. Fetching logs..."
           EXECUTION_NAME=$(gcloud run jobs executions list \
             --job=${{ inputs.job_name }} \
             --region=${{ inputs.gcp_region }} \
@@ -135,15 +128,7 @@ jobs:
             --sort-by=~completionTime \
             --format='value(name)' \
             --limit=1)
-            
-          if [[ -z "$EXECUTION_NAME" ]]; then
-            echo "⚠️ Could not find the last execution name. Skipping log retrieval."
-            exit 1
-          fi
 
-          echo "📋 Fetching logs for execution: $EXECUTION_NAME"
-          
-          # Step 3: Use the execution name to read the specific logs from Cloud Logging.
           gcloud logging read "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"${{ inputs.job_name }}\" AND labels.\"run.googleapis.com/execution_name\"=\"$EXECUTION_NAME\"" \
             --project=${{ inputs.gcp_project_id }} \
-            --format='value(textPayload)'      
+            --format='value(textPayload)'
