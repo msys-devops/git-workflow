@@ -163,7 +163,7 @@ jobs:
           fi
           # --- End of Logic ---
 
-          cloud run jobs create ${{ inputs.service_name }} \
+          cloud run jobs create ${{ inputs.service_name }}-job \
             --region ${{ inputs.gcp_region }} \
             --network $NETWORK_NAME \
             --subnet $SUBNET_NAME \
