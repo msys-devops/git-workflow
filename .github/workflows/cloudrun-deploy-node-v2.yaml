@@ -39,9 +39,6 @@ on:
         required: false
         type: string        
     
-
-
-
     secrets:
       gcp_workload_identity_provider:
         required: true
@@ -68,11 +65,9 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.fpm_image_repo }}:${{ inputs.image_tag }}"
-
+          IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.image_repo }}:${{ inputs.image_tag }}"
 
           # If project_name AND env are provided, construct the network/subnet names.
-          # Otherwise, fall back to using 'default' for both.
           if [[ -n "${{ inputs.project_name }}" && -n "${{ inputs.env }}" ]]; then
             echo "Constructing network and subnet names from 'project_name' and 'env' inputs."
             NETWORK_NAME="projects/${{ inputs.project_name }}-hostnet-prod-1/global/networks/${{ inputs.project_name }}-vpc-${{ inputs.env }}-host-1"
@@ -82,7 +77,25 @@ jobs:
             NETWORK_NAME="default"
             SUBNET_NAME="default"
           fi
+          
+          # --- NEW LOGIC ---
+          # Set CPU and Memory, falling back to defaults if inputs are blank
+          if [[ -n "${{ inputs.cpu }}" ]]; then
+            CPU_VALUE="${{ inputs.cpu }}"
+            echo "Using provided CPU value: $CPU_VALUE"
+          else
+            CPU_VALUE="1"
+            echo "CPU input is blank, using default value: $CPU_VALUE"
+          fi
 
+          if [[ -n "${{ inputs.memory }}" ]]; then
+            MEMORY_VALUE="${{ inputs.memory }}"
+            echo "Using provided Memory value: $MEMORY_VALUE"
+          else
+            MEMORY_VALUE="512Mi"
+            echo "Memory input is blank, using default value: $MEMORY_VALUE"
+          fi
+          # --- END OF NEW LOGIC ---
 
           gcloud run deploy ${{ inputs.service_name }} \
             --platform managed \
@@ -94,20 +107,17 @@ jobs:
             --vpc-egress="private-ranges-only" \
             --allow-unauthenticated \
             --image $IMAGE_NAME \
-            --memory ${{ inputs.memory }} \
-            --cpu ${{ inputs.cpu }} \
+            --memory $MEMORY_VALUE \
+            --cpu $CPU_VALUE \
             --concurrency 80 \
             --timeout 300s \
             --port ${{ inputs.port }}
 
-
-
       - name: Create Cloud Run Job
         run: |
-          IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.fpm_image_repo }}:${{ inputs.image_tag }}"
+          IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.image_repo }}:${{ inputs.image_tag }}"
 
           # If project_name AND env are provided, construct the network/subnet names.
-          # Otherwise, fall back to using 'default' for both.
           if [[ -n "${{ inputs.project_name }}" && -n "${{ inputs.env }}" ]]; then
             echo "Constructing network and subnet names from 'project_name' and 'env' inputs."
             NETWORK_NAME="projects/${{ inputs.project_name }}-hostnet-prod-1/global/networks/${{ inputs.project_name }}-vpc-${{ inputs.env }}-host-1"
@@ -117,7 +127,6 @@ jobs:
             NETWORK_NAME="default"
             SUBNET_NAME="default"
           fi
-          # --- End of Logic ---
 
           # Check if the job already exists
           echo "Checking for existing job: ${{ inputs.service_name }}-job"
@@ -147,7 +156,7 @@ jobs:
             --network $NETWORK_NAME \
             --subnet $SUBNET_NAME \
             --vpc-egress="private-ranges-only" \
-            --image $FPM_IMAGE_NAME \
+            --image $IMAGE_NAME \
             --project ${{ inputs.gcp_project_id }} \
             --command "null" \
             --args "null" \
