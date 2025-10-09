@@ -1,0 +1,159 @@
+name: Deploy UI to CloudRun
+
+on:
+  workflow_call:
+    inputs:
+      gcp_region:
+        required: true
+        type: string
+      gcp_project_id:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+      image_repo:
+        required: true
+        type: string    
+      image_tag:
+        required: true
+        type: string
+      service_name:
+        required: true
+        type: string
+      port:
+        required: true
+        type: string
+      cpu:  
+        required: false
+        type: string
+        default: '1'
+      memory:
+        required: false
+        type: string
+        default: '512Mi'
+      project_name:
+        required: false
+        type: string
+      env:
+        required: false
+        type: string        
+    
+
+
+
+    secrets:
+      gcp_workload_identity_provider:
+        required: true
+      gcp_service_account:
+        required: true
+
+jobs:
+  deploy:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: ${{ secrets.gcp_workload_identity_provider }}
+          service_account: ${{ secrets.gcp_service_account }}     
+
+      - name: Deploy to Cloud Run
+        run: |
+          IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.fpm_image_repo }}:${{ inputs.image_tag }}"
+
+
+          # If project_name AND env are provided, construct the network/subnet names.
+          # Otherwise, fall back to using 'default' for both.
+          if [[ -n "${{ inputs.project_name }}" && -n "${{ inputs.env }}" ]]; then
+            echo "Constructing network and subnet names from 'project_name' and 'env' inputs."
+            NETWORK_NAME="projects/${{ inputs.project_name }}-hostnet-prod-1/global/networks/${{ inputs.project_name }}-vpc-${{ inputs.env }}-host-1"
+            SUBNET_NAME="projects/${{ inputs.project_name }}-hostnet-prod-1/regions/asia-southeast1/subnetworks/${{ inputs.project_name }}-${{ inputs.env }}-priv-sub-1"
+          else
+            echo "'project_name' and/or 'env' not provided. Falling back to 'default' network and subnet."
+            NETWORK_NAME="default"
+            SUBNET_NAME="default"
+          fi
+
+
+          gcloud run deploy ${{ inputs.service_name }} \
+            --platform managed \
+            --execution-environment=gen2 \
+            --region ${{ inputs.gcp_region }} \
+            --project ${{ inputs.gcp_project_id }} \
+            --network $NETWORK_NAME \
+            --subnet $SUBNET_NAME \
+            --vpc-egress="private-ranges-only" \
+            --allow-unauthenticated \
+            --image $IMAGE_NAME \
+            --memory ${{ inputs.memory }} \
+            --cpu ${{ inputs.cpu }} \
+            --concurrency 80 \
+            --timeout 300s \
+            --port ${{ inputs.port }}
+
+
+
+      - name: Create Cloud Run Job
+        run: |
+          IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.fpm_image_repo }}:${{ inputs.image_tag }}"
+
+          # If project_name AND env are provided, construct the network/subnet names.
+          # Otherwise, fall back to using 'default' for both.
+          if [[ -n "${{ inputs.project_name }}" && -n "${{ inputs.env }}" ]]; then
+            echo "Constructing network and subnet names from 'project_name' and 'env' inputs."
+            NETWORK_NAME="projects/${{ inputs.project_name }}-hostnet-prod-1/global/networks/${{ inputs.project_name }}-vpc-${{ inputs.env }}-host-1"
+            SUBNET_NAME="projects/${{ inputs.project_name }}-hostnet-prod-1/regions/asia-southeast1/subnetworks/${{ inputs.project_name }}-${{ inputs.env }}-priv-sub-1"
+          else
+            echo "'project_name' and/or 'env' not provided. Falling back to 'default' network and subnet."
+            NETWORK_NAME="default"
+            SUBNET_NAME="default"
+          fi
+          # --- End of Logic ---
+
+          # Check if the job already exists
+          echo "Checking for existing job: ${{ inputs.service_name }}-job"
+          if gcloud run jobs describe ${{ inputs.service_name }}-job --region ${{ inputs.gcp_region }} --project ${{ inputs.gcp_project_id }} &>/dev/null;
+          then
+            echo "Job found. Updating..."
+            # Update the job with new parameters
+            gcloud run jobs update ${{ inputs.service_name }}-job \
+              --region ${{ inputs.gcp_region }} \
+              --network $NETWORK_NAME \
+              --subnet $SUBNET_NAME \
+              --vpc-egress="private-ranges-only" \
+              --image $IMAGE_NAME \
+              --project ${{ inputs.gcp_project_id }} \
+              --command "null" \
+              --args "null" \
+              --cpu 1 \
+              --memory 512Mi \
+              --max-retries 0 \
+              --tasks 1 \
+              --task-timeout 300s
+          else
+            echo "Job not found. Creating..."
+            # Create a new job
+            gcloud run jobs create ${{ inputs.service_name }}-job \
+            --region ${{ inputs.gcp_region }} \
+            --network $NETWORK_NAME \
+            --subnet $SUBNET_NAME \
+            --vpc-egress="private-ranges-only" \
+            --image $FPM_IMAGE_NAME \
+            --project ${{ inputs.gcp_project_id }} \
+            --command "null" \
+            --args "null" \
+            --cpu 1 \
+            --memory 512Mi \
+            --max-retries 0 \
+            --tasks 1 \
+            --task-timeout 300s
+          fi
