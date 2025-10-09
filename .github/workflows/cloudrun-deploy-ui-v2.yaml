@@ -1,134 +1,67 @@
-# Reusable GitHub Actions Workflow
-# Creates or updates a Google Cloud Run Job
-
-name: Deploy CloudRun Job
+name: Deploy UI to CloudRun
 
 on:
   workflow_call:
     inputs:
-      # --- Required Inputs ---
-      gcp_project_id:
-        description: 'The GCP project ID.'
-        required: true
-        type: string
       gcp_region:
-        description: 'The GCP region for the Cloud Run job (e.g., us-central1).'
         required: true
         type: string
-      job_name:
-        description: 'The base name for the Cloud Run job (e.g., "db-migration"). The workflow will use "{job_name}-job".'
+      gcp_project_id:
+        required: true
+        type: string
+      environment:
         required: true
         type: string
       image_repo:
-        description: 'The Artifact Registry repository name.'
         required: true
         type: string
       image_tag:
-        description: 'The tag of the image to deploy.'
         required: true
         type: string
-      network_name:
-        description: 'The full name or URL of the VPC network.'
+      service_name:
         required: true
         type: string
-      subnet_name:
-        description: 'The full name or URL of the VPC subnet.'
+      port:
         required: true
         type: string
 
-      # --- Optional Inputs with Defaults ---
-      command:
-        description: 'Command to run for the job task, as a comma-separated list (e.g., "php,artisan,migrate").'
-        required: false
-        type: string
-        default: ''
-      args:
-        description: 'Arguments for the command, as a comma-separated list (e.g., "--force,--seed").'
-        required: false
-        type: string
-        default: ''
-      cpu:
-        description: 'The CPU limit for the job.'
-        required: false
-        type: string
-        default: '1'
-      memory:
-        description: 'The memory limit for the job (e.g., 512Mi).'
-        required: false
-        type: string
-        default: '1024Mi'
-      task_timeout:
-        description: 'The maximum execution time for a task in seconds.'
-        required: false
-        type: string
-        default: '300s'
-      max_retries:
-        description: 'The number of times to retry a failed task.'
-        required: false
-        type: number
-        default: 0
+
 
     secrets:
       gcp_workload_identity_provider:
-        description: 'The GCP Workload Identity Provider.'
         required: true
       gcp_service_account:
-        description: 'The GCP Service Account email.'
         required: true
 
 jobs:
-  deploy-job:
+  deploy:
     permissions:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
 
     steps:
-      - name: 'Authenticate to Google Cloud'
-        id: 'auth'
-        uses: 'google-github-actions/auth@v2'
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
         with:
           workload_identity_provider: ${{ secrets.gcp_workload_identity_provider }}
           service_account: ${{ secrets.gcp_service_account }}
 
-      - name: 'Create or Update Cloud Run Job'
-        id: 'deploy'
+      - name: Deploy to Cloud Run
         run: |
-          set -e # Exit immediately if a command exits with a non-zero status.
-
-          JOB_NAME="${{ inputs.job_name }}-job"
-          IMAGE_NAME="${{ inputs.gcp_region }}-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.image_repo }}:${{ inputs.image_tag }}"
-
-          # --- Define all common gcloud flags in one place ---
-          COMMON_FLAGS="\
-            --region ${{ inputs.gcp_region }} \
-            --project ${{ inputs.gcp_project_id }} \
+          IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.image_repo }}:${{ inputs.image_tag }}"
+          gcloud run deploy ${{ inputs.service_name }} \
             --image $IMAGE_NAME \
-            --network ${{ inputs.network_name }} \
-            --subnet ${{ inputs.subnet_name }} \
-            --vpc-egress=private-ranges-only \
-            --cpu ${{ inputs.cpu }} \
-            --memory ${{ inputs.memory }} \
-            --max-retries ${{ inputs.max_retries }} \
-            --tasks 1 \
-            --task-timeout ${{ inputs.task_timeout }}"
-
-          # Conditionally add command and args if they are provided
-          if [[ -n "${{ inputs.command }}" ]]; then
-            COMMON_FLAGS="$COMMON_FLAGS --command=${{ inputs.command }}"
-          fi
-          if [[ -n "${{ inputs.args }}" ]]; then
-            COMMON_FLAGS="$COMMON_FLAGS --args=${{ inputs.args }}"
-          fi
-
-          echo "Checking for existing job: $JOB_NAME"
-          # Check if the job already exists (redirect stderr to /dev/null to suppress "Not Found" errors)
-          if gcloud run jobs describe $JOB_NAME --region ${{ inputs.gcp_region }} --project ${{ inputs.gcp_project_id }} &>/dev/null; then
-            echo "Job found. Updating..."
-            gcloud run jobs update $JOB_NAME $COMMON_FLAGS
-          else
-            echo "Job not found. Creating..."
-            gcloud run jobs create $JOB_NAME $COMMON_FLAGS
-          fi
-
-          echo "Successfully created/updated job: $JOB_NAME"
+            --platform managed \
+            --region asia-southeast1 \
+            --allow-unauthenticated \
+            --memory 1024Mi \
+            --cpu 1 \
+            --concurrency 80 \
+            --timeout 300s \
+            --port ${{ inputs.port }} \
+            --project ${{ inputs.gcp_project_id }}
