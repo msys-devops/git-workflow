@@ -1,0 +1,68 @@
+# .github/workflows/reusable-map-domain.yml
+
+name: Reusable - Map Cloud Run Domain
+
+# This workflow can be called by other workflows
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: 'The name of the Cloud Run service'
+        required: true
+        type: string
+      domain_name:
+        description: 'The custom domain to map. If blank, the workflow will skip.'
+        required: true
+        type: string
+      region:
+        description: 'The GCP region of the Cloud Run service'
+        required: true
+        type: string
+      gcp_workload_identity_provider:
+        description: 'The GCP Workload Identity Provider'
+        required: true
+        type: string
+      gcp_service_account:
+        description: 'The GCP service account to impersonate'
+        required: true
+        type: string
+
+jobs:
+  map-domain:
+    runs-on: ubuntu-latest
+    
+    # Required permissions for GCP authentication
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ inputs.gcp_workload_identity_provider }}
+          service_account: ${{ inputs.gcp_service_account }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Check and Create Domain Mapping
+        run: |
+          # Condition 1: Check if the domain_name input is blank.
+          if [[ -z "${{ inputs.domain_name }}" ]]; then
+            echo "Domain name is not provided. Skipping domain mapping."
+            exit 0
+          fi
+          
+          echo "Checking for existing domain mapping for ${{ inputs.domain_name }}..."
+          
+          # Condition 2: Check if the mapping already exists in GCP.
+          if gcloud run domain-mappings describe "${{ inputs.domain_name }}" --region "${{ inputs.region }}" &> /dev/null; then
+            echo "✅ Domain mapping for '${{ inputs.domain_name }}' already exists. Skipping."
+          else
+            echo "No mapping found. Creating domain mapping..."
+            gcloud run domain-mappings create \
+              --service "${{ inputs.service_name }}" \
+              --domain "${{ inputs.domain_name }}" \
+              --region "${{ inputs.region }}"
+          fi
