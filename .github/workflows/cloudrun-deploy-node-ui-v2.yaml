@@ -1,0 +1,93 @@
+name: Deploy UI to CloudRun
+
+on:
+  workflow_call:
+    inputs:
+      gcp_region:
+        required: true
+        type: string
+      gcp_project_id:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+      image_repo:
+        required: true
+        type: string    
+      image_tag:
+        required: true
+        type: string
+      service_name:
+        required: true
+        type: string
+      port:
+        required: true
+        type: string
+      cpu:  
+        required: false
+        type: string
+        default: '1'
+      memory:
+        required: false
+        type: string
+        default: '512Mi'
+
+    secrets:
+      gcp_workload_identity_provider:
+        required: true
+      gcp_service_account:
+        required: true
+
+jobs:
+  deploy:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: ${{ secrets.gcp_workload_identity_provider }}
+          service_account: ${{ secrets.gcp_service_account }}     
+
+      - name: Deploy to Cloud Run
+        run: |
+          IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.image_repo }}:${{ inputs.image_tag }}"         
+          # --- NEW LOGIC ---
+          # Set CPU and Memory, falling back to defaults if inputs are blank
+          if [[ -n "${{ inputs.cpu }}" ]]; then
+            CPU_VALUE="${{ inputs.cpu }}"
+            echo "Using provided CPU value: $CPU_VALUE"
+          else
+            CPU_VALUE="1"
+            echo "CPU input is blank, using default value: $CPU_VALUE"
+          fi
+
+          if [[ -n "${{ inputs.memory }}" ]]; then
+            MEMORY_VALUE="${{ inputs.memory }}"
+            echo "Using provided Memory value: $MEMORY_VALUE"
+          else
+            MEMORY_VALUE="512Mi"
+            echo "Memory input is blank, using default value: $MEMORY_VALUE"
+          fi
+          # --- END OF NEW LOGIC ---
+
+          gcloud run deploy ${{ inputs.service_name }} \
+            --platform managed \
+            --execution-environment=gen2 \
+            --region ${{ inputs.gcp_region }} \
+            --project ${{ inputs.gcp_project_id }} \
+            --allow-unauthenticated \
+            --image $IMAGE_NAME \
+            --memory $MEMORY_VALUE \
+            --cpu $CPU_VALUE \
+            --concurrency 80 \
+            --timeout 300s \
+            --port ${{ inputs.port }}
