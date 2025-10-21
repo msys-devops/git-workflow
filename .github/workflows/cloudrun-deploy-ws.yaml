@@ -24,6 +24,14 @@ on:
       port:
         required: true
         type: string
+      cpu:  
+        required: false
+        type: string
+        default: '1'
+      mem:
+        required: false
+        type: string
+        default: '512Mi'
       network:
         required: true
         type: string
@@ -63,8 +71,8 @@ jobs:
             --platform managed \
             --region asia-southeast1 \
             --allow-unauthenticated \
-            --memory 512Mi \
-            --cpu 1 \
+            --memory ${{ inputs.mem }} \
+            --cpu ${{ inputs.cpu }} \
             --concurrency 80 \
             --timeout 300s \
             --port ${{ inputs.port }} \
