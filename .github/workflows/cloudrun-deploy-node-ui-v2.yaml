@@ -9,9 +9,6 @@ on:
       gcp_project_id:
         required: true
         type: string
-      environment:
-        required: true
-        type: string
       image_repo:
         required: true
         type: string    
