@@ -40,8 +40,28 @@ jobs:
           workload_identity_provider: ${{ secrets.gcp_workload_identity_provider }}
           service_account: ${{ secrets.gcp_service_account }}
 
+      - name: Set up Google Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v1'
+        with:
+          project_id: ${{ inputs.gcp_project_id }}          
+
       - name: Add Domain Mapping to Cloud Run Service
         run: |
-          gcloud run domain-mappings create \
-            --service ${{ inputs.service_name }} \
-            --domain ${{ inputs.domain }}
+          # Try to describe the mapping. 
+          # We redirect output to /dev/null (&>) to silence the expected "NOT_FOUND" error.
+          if gcloud run domain-mappings describe ${{ inputs.domain }} \
+            --region ${{ inputs.gcp_region }} \
+            --project ${{ inputs.gcp_project_id }} &> /dev/null; then
+            
+            # If the command SUCCEEDS, the mapping exists.
+            echo "Domain mapping for ${{ inputs.domain }} already exists. Skipping creation."
+          
+          else
+            # If the command FAILS, the mapping does not exist.
+            echo "Domain mapping for ${{ inputs.domain }} not found. Creating..."
+            gcloud run domain-mappings create \
+              --service ${{ inputs.service_name }} \
+              --domain ${{ inputs.domain }} \
+              --region ${{ inputs.gcp_region }} \
+              --project ${{ inputs.gcp_project_id }}
+          fi
