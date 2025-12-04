@@ -33,19 +33,19 @@ on:
       nginx_cpu:  
         required: false
         type: string
-        default: '1'
+        default: '.5'
       nginx_memory:
         required: false
         type: string
-        default: '512Mi'
+        default: '256Mi'
       fpm_cpu:
         required: false
         type: string
-        default: '1'
+        default: '.5'
       fpm_memory:
         required: false
         type: string
-        default: '512Mi' 
+        default: '768Mi' 
       project_name:
         required: false
         type: string
