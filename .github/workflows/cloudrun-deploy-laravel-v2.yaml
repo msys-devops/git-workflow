@@ -128,7 +128,7 @@ jobs:
             --allow-unauthenticated \
             --add-volume name=storage-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }} \
             --add-volume name=cache-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }}-cache \
-            --container nginx --image=$NGINX_IMAGE_NAME --port 8080 --memory ${{ inputs.nginx_memory }} --cpu ${{ inputs.nginx_cpu }} --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage \
+            --container nginx --image=$NGINX_IMAGE_NAME --port ${{ inputs.port }} --memory ${{ inputs.nginx_memory }} --cpu ${{ inputs.nginx_cpu }} --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage \
             --container fpm --image=$FPM_IMAGE_NAME --memory ${{ inputs.fpm_memory }} --cpu ${{ inputs.fpm_cpu }} --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage --add-volume-mount volume=cache-volume,mount-path=/var/www/html/bootstrap/cache/data
 
 

@@ -30,6 +30,9 @@ on:
       tag_env:
         required: true
         type: string 
+      env_path:
+        required: true
+        type: string
 
     secrets:
       aws_access_key_id:
@@ -54,7 +57,7 @@ jobs:
 
     - name: Set tag
       id: vars
-      run: echo "::set-output name=tag::${GITHUB_REF#refs/*/}"
+      run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
     
     - name: Checkout submodules
       uses: actions/checkout@v2 
@@ -65,7 +68,8 @@ jobs:
         ssh-key: ${{ secrets.submodule_ssh_key }}
         submodules: recursive
 
-    - run: git describe --tags > ${{ inputs.project_dir }}/project/version
+    # Updated path to match your GCP version file logic
+    - run: git describe --tags > ${{ inputs.project_dir }}/version
     
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -78,7 +82,7 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Get Secrets from AWS
+    - name: Get .env from AWS Secrets Manager
       uses: aws-actions/aws-secretsmanager-get-secrets@v1
       with:
         secret-ids: |
@@ -87,29 +91,32 @@ jobs:
 
     - name: Create temporary .env file
       run: |
-        mkdir -p ${{ inputs.project_dir }}/${{ inputs.secret_dir }}
-        echo "${{ env.DOTENV_CONTENT }}" > ${{ inputs.project_dir }}/${{ inputs.secret_dir }}/.env
+        # Ensure the directory exists based on the env_path input
+        mkdir -p $(dirname ${{ inputs.env_path }})
+        echo "${{ env.DOTENV_CONTENT }}" > ${{ inputs.env_path }}
 
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
       env:
         DOCKER_BUILDKIT: 1
+        REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         TAG_LATEST: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:${{ inputs.tag_env }}
         TAG_VERSION: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:${{ steps.vars.outputs.tag}}
 
       run: |
+        # Use BuildKit secrets to mount the env file during build without baking it into layers
         docker build -f ${{ inputs.dockerfile }} \
         -t $TAG_LATEST \
         -t $TAG_VERSION \
         --target ${{ inputs.target }} \
         --build-arg PROJECT_DIR=${{ inputs.project_dir }} \
-        --secret id=dotenv,src=${{ inputs.project_dir }}/${{ inputs.secret_dir }}/.env \
+        --secret id=dotenv,src=${{ inputs.env_path }} \
         .
         
         docker push $TAG_LATEST
         docker push $TAG_VERSION
-        echo "::set-output name=image::$TAG_VERSION"
+        echo "image=$TAG_VERSION" >> $GITHUB_OUTPUT
 
     - name: Cleanup Secrets
       if: always()
-      run: rm -f ${{ inputs.project_dir }}/${{ inputs.secret_dir }}/.env
+      run: rm -f ${{ inputs.env_path }}
