@@ -1,9 +1,8 @@
-name: Build Web Service
+name: Build UI (CRA)
 
 on:
   workflow_call:
     inputs:
-      # --- Infrastructure & ECR ---
       aws_region:
         required: true
         type: string
@@ -14,6 +13,10 @@ on:
         required: true
         type: string 
       environment:
+        required: true
+        type: string
+      # Added input to specify which AWS Secret to pull
+      aws_secret_name:
         required: true
         type: string
       target:
@@ -44,6 +47,8 @@ jobs:
   build:
     name: Pull Repository & Build
     runs-on: ubuntu-latest
+    env:
+      CONTAINERD_ENABLE_DEPRECATED_PULL_SCHEMA_1_IMAGE: "1"
     environment: 
       name: ${{ inputs.environment }}
     steps:
@@ -54,8 +59,8 @@ jobs:
       id: vars
       run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
     
-    - name: Checkout App Repository (Submodule Logic)
-      uses: actions/checkout@v4 
+    - name: Checkout App Repository
+      uses: actions/checkout@v4
       with:
         repository: ${{ inputs.repository }}
         ref: ${{ inputs.branch }}
@@ -63,38 +68,46 @@ jobs:
         ssh-key: ${{ secrets.submodule_ssh_key }}
         submodules: recursive
 
-    - name: Generate Version File
-      run: |
-        mkdir -p ${{ inputs.project_dir }}/project
-        git describe --tags --always > ${{ inputs.project_dir }}/project/version
-    
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.aws_access_key_id }}
         aws-secret-access-key: ${{ secrets.aws_secret_access_key }}
         aws-region: ${{ inputs.aws_region }}
+
+    - name: Fetch ENVS from AWS Secrets Manager
+      id: fetch-secrets
+      run: |
+        # Fetching the secret and masking it in logs for security
+        SECRET_VALUE=$(aws secretsmanager get-secret-value \
+          --secret-id "${{ inputs.aws_secret_name }}" \
+          --query SecretString --output text)
+        
+        echo "::add-mask::$SECRET_VALUE"
+        echo "retrieved_envs=$SECRET_VALUE" >> $GITHUB_OUTPUT
     
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build, tag, and push image to Amazon ECR
+    - name: Build, tag, and push image
       id: build-image
       env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: ${{ inputs.ecr_repository }} 
+        REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        REPOSITORY: ${{ inputs.ecr_repository }}
         TAG_ENV: ${{ inputs.tag_env }}
         TAG_GIT: ${{ steps.vars.outputs.tag }}
+        # Using the output from the fetch-secrets step
+        FETCHED_ENVS: ${{ steps.fetch-secrets.outputs.retrieved_envs }}
       run: |
-        FULL_IMAGE_STG="$ECR_REGISTRY/$ECR_REPOSITORY:$TAG_ENV"
-        FULL_IMAGE_GIT="$ECR_REGISTRY/$ECR_REPOSITORY:$TAG_GIT"
+        FULL_IMAGE_STG="$REGISTRY/$REPOSITORY:$TAG_ENV"
+        FULL_IMAGE_GIT="$REGISTRY/$REPOSITORY:$TAG_GIT"
 
         docker build -f ${{ inputs.dockerfile }} \
           -t "$FULL_IMAGE_STG" \
           -t "$FULL_IMAGE_GIT" \
           --target ${{ inputs.target }} . \
-          --build-arg PROJECT_DIR=${{ inputs.project_dir }}
+          --build-arg ENVS="$FETCHED_ENVS"
         
         docker push "$FULL_IMAGE_STG"
         docker push "$FULL_IMAGE_GIT"

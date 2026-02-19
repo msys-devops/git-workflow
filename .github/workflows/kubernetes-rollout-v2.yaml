@@ -1,0 +1,50 @@
+name: Rollout Kubernetes
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      url:
+        required: false
+        type: string
+      aws_region:
+        required: true
+        type: string
+      namespace:
+        required: true
+        type: string
+      deployment:
+        required: true
+        type: string
+
+    secrets:
+      aws_access_key_id:
+        required: true
+      aws_secret_access_key:
+        required: true
+      kube_config_data:
+        required: true
+
+jobs:
+  rollout:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.url }}
+    steps:
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.aws_access_key_id }}
+        aws-secret-access-key: ${{ secrets.aws_secret_access_key }}
+        aws-region: ${{ inputs.aws_region }}
+
+    - name: Trigger Kubernetes Rollout
+      uses: msys-devops/kubernetes-action@main
+      env:
+        KUBE_CONFIG_DATA: ${{ secrets.kube_config_data }}
+      with:
+        args: -n ${{ inputs.namespace }} rollout restart deployment ${{ inputs.deployment }}
