@@ -85,7 +85,16 @@ jobs:
         TAG_VERSION: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:${{ steps.vars.outputs.tag}}
 
       run: |
-        docker build -f ${{ inputs.dockerfile }} -t $TAG_LATEST -t $TAG_VERSION --target ${{ inputs.target }} --build-arg ENVS=${{ secrets.envs }} .        
+        BUILD_ENVS: ${{ secrets.envs }}
+        TAG_LATEST: ${{ env.TAG_LATEST }} # Ensure these are available in env
+        TAG_VERSION: ${{ env.TAG_VERSION }}
+        run: |
+          docker build -f ${{ inputs.dockerfile }} \
+            -t "$TAG_LATEST" \
+            -t "$TAG_VERSION" \
+            --target ${{ inputs.target }} \
+            --build-arg ENVS="$BUILD_ENVS" \
+            .
         docker push $TAG_LATEST
         docker push $TAG_VERSION
         echo "::set-output name=image::$TAG_VERSION"
