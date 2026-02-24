@@ -85,12 +85,9 @@ jobs:
         TAG_VERSION: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ecr_repository }}:${{ steps.vars.outputs.tag}}
 
       run: |
-        docker build -f ops/vortex-ws/docker/Dockerfile \
-          -t "$TAG_LATEST" \
-          -t "$TAG_VERSION" \
-          --target build \
-          --build-arg ENVS="$BUILD_ENVS" \
-          .
+        docker build -f ${{ inputs.dockerfile }} -t $TAG_LATEST -t $TAG_VERSION --target ${{ inputs.target }} . \
+        --build-arg ENVS=${{ secrets.envs }}
+        
         docker push $TAG_LATEST
         docker push $TAG_VERSION
         echo "::set-output name=image::$TAG_VERSION"
