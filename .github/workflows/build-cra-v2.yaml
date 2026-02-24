@@ -15,7 +15,6 @@ on:
       environment:
         required: true
         type: string
-      # Added input to specify which AWS Secret to pull
       aws_secret_name:
         required: true
         type: string
@@ -97,7 +96,6 @@ jobs:
         REPOSITORY: ${{ inputs.ecr_repository }}
         TAG_ENV: ${{ inputs.tag_env }}
         TAG_GIT: ${{ steps.vars.outputs.tag }}
-        # Using the output from the fetch-secrets step
         FETCHED_ENVS: ${{ steps.fetch-secrets.outputs.retrieved_envs }}
       run: |
         FULL_IMAGE_STG="$REGISTRY/$REPOSITORY:$TAG_ENV"
