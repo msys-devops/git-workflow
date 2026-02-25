@@ -1,0 +1,49 @@
+name: Deploy API to CloudRun
+
+on:
+  workflow_call:
+    inputs:
+      vm_zone:
+        required: true
+        type: string
+      gcp_project_id:
+        required: true
+        type: string
+      vm_name:
+        required: true
+        type: string
+      remote_command:
+        required: true
+        type: string
+
+    secrets:
+      gcp_workload_identity_provider:
+        required: true
+      gcp_service_account:
+        required: true
+
+jobs:
+  deploy:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: ${{ secrets.gcp_workload_identity_provider }}
+          service_account: ${{ secrets.gcp_service_account }}
+
+      - name: Deploy to VM
+        run: |
+          gcloud compute ssh ${{ env.VM_NAME }} \
+            --project=${{ env.gcp_project_id }} \
+            --zone=${{ env.vm_zone }} \
+            --command="${{ env.remote_command }}" \
+            --quiet
