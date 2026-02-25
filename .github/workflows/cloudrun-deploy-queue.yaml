@@ -46,4 +46,5 @@ jobs:
             --project=${{ inputs.gcp_project_id }} \
             --zone=${{ inputs.vm_zone }} \
             --command="${{ inputs.remote_command }}" \
+            --tunnel-through-iap \
             --quiet
