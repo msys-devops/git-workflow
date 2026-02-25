@@ -42,7 +42,7 @@ jobs:
 
       - name: Deploy to VM
         run: |
-          gcloud compute ssh ${{ env.VM_NAME }} \
+          gcloud compute ssh ${{ env.vm_name }} \
             --project=${{ env.gcp_project_id }} \
             --zone=${{ env.vm_zone }} \
             --command="${{ env.remote_command }}" \
