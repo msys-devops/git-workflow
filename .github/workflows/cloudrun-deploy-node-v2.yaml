@@ -104,7 +104,7 @@ jobs:
             --project ${{ inputs.gcp_project_id }} \
             --network $NETWORK_NAME \
             --subnet $SUBNET_NAME \
-            --vpc-egress="private-ranges-only" \
+            --vpc-egress="all-traffic" \
             --allow-unauthenticated \
             --image $IMAGE_NAME \
             --memory $MEMORY_VALUE \
