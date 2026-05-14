@@ -46,7 +46,7 @@ on:
         required: true
 
 jobs:
-  deploy:
+  Deploy:
     permissions:
       contents: 'read'
       id-token: 'write'
