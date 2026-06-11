@@ -1,0 +1,113 @@
+name: Deploy UI to CloudRun
+
+on:
+  workflow_call:
+    inputs:
+      gcp_region:
+        required: true
+        type: string
+      gcp_project_id:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+      fpm_image_repo:
+        required: true
+        type: string
+      nginx_image_repo:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+      service_name:
+        required: true
+        type: string
+      port:
+        required: true
+        type: string
+      bucket_name:
+        required: true
+        type: string
+      nginx_cpu:
+        required: false
+        type: string
+        default: '1'
+      nginx_memory:
+        required: false
+        type: string
+        default: '512Mi'
+      fpm_cpu:
+        required: false
+        type: string
+        default: '1'
+      fpm_memory:
+        required: false
+        type: string
+        default: '512Mi'
+      project_name:
+        required: false
+        type: string
+        default: ''
+      env:
+        required: false
+        type: string
+        default: ''
+
+    secrets:
+      gcp_workload_identity_provider:
+        required: true
+      gcp_service_account:
+        required: true
+
+jobs:
+  deploy:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: ${{ secrets.gcp_workload_identity_provider }}
+          service_account: ${{ secrets.gcp_service_account }}
+
+      - name: Create Storage Bucket
+        run: |
+          if ! gcloud storage buckets describe gs://${{ inputs.bucket_name }} &>/dev/null; then
+            echo "Bucket does not exist. Creating gs://${{ inputs.bucket_name }}..."
+            gcloud storage buckets create gs://${{ inputs.bucket_name }} --location=${{ inputs.gcp_region }}
+          else
+            echo "Bucket gs://${{ inputs.bucket_name }} already exists."
+          fi
+
+      - name: Create Cache Bucket
+        run: |
+          if ! gcloud storage buckets describe gs://${{ inputs.bucket_name }}-cache &>/dev/null; then
+            echo "Bucket does not exist. Creating gs://${{ inputs.bucket_name }}-cache..."
+            gcloud storage buckets create gs://${{ inputs.bucket_name }}-cache --location=${{ inputs.gcp_region }}
+          else
+            echo "Bucket gs://${{ inputs.bucket_name }}-cache already exists."
+          fi
+
+      - name: Deploy to Cloud Run
+        run: |
+          NGINX_IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.nginx_image_repo }}:${{ inputs.image_tag }}"
+          FPM_IMAGE_NAME="asia-southeast1-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.fpm_image_repo }}:${{ inputs.image_tag }}"
+          gcloud run deploy ${{ inputs.service_name }} \
+          --platform managed \
+          --execution-environment=gen2 \
+          --region ${{ inputs.gcp_region }} \
+          --project ${{ inputs.gcp_project_id }} \
+          --allow-unauthenticated \
+          --add-volume name=storage-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }} \
+          --add-volume name=cache-volume,type=cloud-storage,bucket=${{ inputs.bucket_name }}-cache \
+          --container nginx --image=$NGINX_IMAGE_NAME --port ${{ inputs.port }} --memory ${{ inputs.nginx_memory }} --cpu ${{ inputs.nginx_cpu }} --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage \
+          --container fpm --image=$FPM_IMAGE_NAME --memory ${{ inputs.fpm_memory }} --cpu ${{ inputs.fpm_cpu }} --add-volume-mount volume=storage-volume,mount-path=/var/www/html/storage --add-volume-mount volume=cache-volume,mount-path=/var/www/html/bootstrap/cache/data
